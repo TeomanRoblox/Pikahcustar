@@ -1,0 +1,177 @@
+-- Player ve UI bileşenlerini tanımlama
+local player = game.Players.LocalPlayer
+local mouse = player:GetMouse()
+local camera = workspace.CurrentCamera
+
+-- UI'nin oluşturulması
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player:WaitForChild("PlayerGui")
+screenGui.Name = "CustomUI"
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0.4, 0, 0.6, 0)
+mainFrame.Position = UDim2.new(0.3, 0, 0.2, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 0) -- Sarı arka plan
+mainFrame.Visible = false -- UI başlangıçta kapalı
+mainFrame.Active = true -- UI taşınabilir yapılması için aktif hale getiriliyor
+mainFrame.Draggable = true -- UI'yi sürüklenebilir yapar
+mainFrame.Parent = screenGui
+
+-- Pikachu Yıldızı (örnek bir resim kullanıyorum, kendi resmini eklemen gerekiyor)
+local pikachuImage = Instance.new("ImageLabel")
+pikachuImage.Size = UDim2.new(0.3, 0, 0.3, 0)
+pikachuImage.Position = UDim2.new(0.35, 0, 0.05, 0)
+pikachuImage.Image = "rbxassetid://1121234567" -- Pikachu resim ID'sini buraya ekle
+pikachuImage.Parent = mainFrame
+
+-- ESP Butonu
+local espButton = Instance.new("TextButton")
+espButton.Size = UDim2.new(0.6, 0, 0.1, 0)
+espButton.Position = UDim2.new(0.2, 0, 0.4, 0)
+espButton.Text = "ESP Aç/Kapat"
+espButton.Parent = mainFrame
+
+-- Speed Hack Butonu
+local speedButton = Instance.new("TextButton")
+speedButton.Size = UDim2.new(0.6, 0, 0.1, 0)
+speedButton.Position = UDim2.new(0.2, 0, 0.55, 0)
+speedButton.Text = "Speed Hack Aç/Kapat"
+speedButton.Parent = mainFrame
+
+-- Fly Butonu
+local flyButton = Instance.new("TextButton")
+flyButton.Size = UDim2.new(0.6, 0, 0.1, 0)
+flyButton.Position = UDim2.new(0.2, 0, 0.7, 0)
+flyButton.Text = "Fly Aç/Kapat"
+flyButton.Parent = mainFrame
+
+-- Aimbot Butonu
+local aimbotButton = Instance.new("TextButton")
+aimbotButton.Size = UDim2.new(0.6, 0, 0.1, 0)
+aimbotButton.Position = UDim2.new(0.2, 0, 0.85, 0)
+aimbotButton.Text = "Aimbot Aç/Kapat"
+aimbotButton.Parent = mainFrame
+
+-- UI'yi P tuşuna basıldığında açıp kapatma
+local uiVisible = false
+mouse.KeyDown:Connect(function(key)
+    if key == "p" then
+        uiVisible = not uiVisible
+        mainFrame.Visible = uiVisible
+    end
+end)
+
+-- ESP işlevi
+local espEnabled = false
+espButton.MouseButton1Click:Connect(function()
+    espEnabled = not espEnabled
+    if espEnabled then
+        -- ESP açılır: oyuncuları duvar arkasından gösterme
+        for _, character in pairs(game.Workspace:GetChildren()) do
+            if character:FindFirstChild("Humanoid") and character ~= player.Character then
+                for _, part in pairs(character:GetChildren()) do
+                    if part:IsA("BasePart") then
+                        part.Transparency = 0.5 -- Şeffaflık eklenir
+                        part.Material = Enum.Material.Neon
+                        part.Color = Color3.fromRGB(255, 0, 0) -- Sabit kırmızı renk
+                    end
+                end
+            end
+        end
+    else
+        -- ESP tamamen kapatılır
+        for _, character in pairs(game.Workspace:GetChildren()) do
+            if character:FindFirstChild("Humanoid") and character ~= player.Character then
+                for _, part in pairs(character:GetChildren()) do
+                    if part:IsA("BasePart") then
+                        part.Transparency = 0 -- Şeffaflık kaldırılır
+                        part.Material = Enum.Material.Plastic
+                        part.Color = part.BrickColor.Color -- Orijinal rengine geri döner
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- Speed Hack işlevi
+local speedEnabled = false
+speedButton.MouseButton1Click:Connect(function()
+    speedEnabled = not speedEnabled
+    if speedEnabled then
+        player.Character.Humanoid.WalkSpeed = 100 -- Hız arttırılır
+    else
+        player.Character.Humanoid.WalkSpeed = 16 -- Normal hız
+    end
+end)
+
+-- Fly işlevi
+local flyEnabled = false
+flyButton.MouseButton1Click:Connect(function()
+    flyEnabled = not flyEnabled
+    if flyEnabled then
+        -- Fly açılır
+        local bodyGyro = Instance.new("BodyGyro", player.Character.HumanoidRootPart)
+        local bodyVelocity = Instance.new("BodyVelocity", player.Character.HumanoidRootPart)
+        bodyGyro.CFrame = player.Character.HumanoidRootPart.CFrame
+        bodyVelocity.Velocity = Vector3.new(0, 50, 0) -- Havada yüzme gibi
+        bodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
+    else
+        -- Fly kapatılır
+        if player.Character.HumanoidRootPart:FindFirstChild("BodyGyro") then
+            player.Character.HumanoidRootPart.BodyGyro:Destroy()
+            player.Character.HumanoidRootPart.BodyVelocity:Destroy()
+        end
+    end
+end)
+
+-- Aimbot işlevi
+local aimbotEnabled = false
+local cameraLocked = false
+local aimbotCircle = Drawing.new("Circle")
+aimbotCircle.Radius = 50
+aimbotCircle.Color = Color3.fromRGB(255, 255, 0)
+aimbotCircle.Visible = false
+
+aimbotButton.MouseButton1Click:Connect(function()
+    aimbotEnabled = not aimbotEnabled
+    if aimbotEnabled then
+        aimbotCircle.Visible = true
+
+        -- Aimbot işlevi: en yakın oyuncuya kitlenme
+        game:GetService("RunService").RenderStepped:Connect(function()
+            local closestPlayer = nil
+            local shortestDistance = math.huge
+
+            for _, targetPlayer in pairs(game.Players:GetPlayers()) do
+                if targetPlayer ~= player and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    local targetPos = targetPlayer.Character.HumanoidRootPart.Position
+                    local screenPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(targetPos)
+
+                    if onScreen then
+                        local distance = (Vector2.new(mouse.X, mouse.Y) - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
+                        if distance < shortestDistance then
+                            shortestDistance = distance
+                            closestPlayer = targetPlayer
+                        end
+                    end
+                end
+            end
+
+            -- Eğer bir oyuncuya kitlenmişse, sarı çemberi o oyuncuya kitle ve kamerayı hedefe kilitle
+            if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") and cameraLocked then
+                local targetPos = closestPlayer.Character.HumanoidRootPart.Position
+                camera.CFrame = CFrame.new(camera.CFrame.Position, targetPos) -- Kamera oyuncuya kitlenir
+                aimbotCircle.Position = Vector2.new(workspace.CurrentCamera:WorldToViewportPoint(targetPos).X, workspace.CurrentCamera:WorldToViewportPoint(targetPos).Y)
+            end
+        end)
+    else
+        -- Aimbot kapatılır
+        aimbotCircle.Visible = false
+    end
+end)
+
+-- Sağ tık ile kamera kilitleme/serbest bırakma
+mouse.Button2Down:Connect(function()
+    cameraLocked = not cameraLocked
+end)
